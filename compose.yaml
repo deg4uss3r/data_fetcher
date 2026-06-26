@@ -1,0 +1,8 @@
+services:
+  data_fetcher:
+    build: .
+    ports:
+      - "9999:9999"
+    volumes:
+       - ~/.config/data_fetcher:/root/.config/data_fetcher
+    restart: always
