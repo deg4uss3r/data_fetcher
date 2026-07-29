@@ -7,7 +7,7 @@ use serde_json::from_str;
 use thiserror::Error;
 
 const WEATHER_API_URI: &str = "https://api.weatherapi.com/v1/forecast.json";
-const QUERY: &str = "q=15224&days=3&aqi=yes&alerts=yes";
+const QUERY: &str = "days=1&aqi=yes&alerts=yes";
 
 #[derive(Debug, Error)]
 pub(crate) enum WeatherError {
@@ -52,7 +52,8 @@ struct Current {
     last_updated: String,
     temp_c: f32,
     temp_f: f32,
-    is_day: u8,
+    #[serde(deserialize_with = "int_to_bool")]
+    is_day: bool,
     condition: Condition,
     wind_mph: f32,
     wind_kph: f32,
@@ -77,15 +78,15 @@ struct Current {
     uv: f32,
     gust_mph: f32,
     gust_kph: f32,
-    will_it_rain: f32,
+    #[serde(deserialize_with = "int_to_bool")]
+    will_it_rain: bool,
     chance_of_rain: f32,
-    will_it_snow: f32,
+    #[serde(deserialize_with = "int_to_bool")]
+    will_it_snow: bool,
     chance_of_snow: f32,
+    wetbulb_c: f32,
+    wetbulb_f: f32,
     air_quality: AirQuality,
-    short_rad: f32,
-    diff_rad: f32,
-    dni: f32,
-    gti: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -140,13 +141,18 @@ struct Day {
     avgvis_km: f32,
     avgvis_miles: f32,
     avghumidity: f32,
-    daily_will_it_rain: f32,
+    #[serde(deserialize_with = "int_to_bool")]
+    daily_will_it_rain: bool,
     daily_chance_of_rain: f32,
-    daily_will_it_snow: f32,
+    #[serde(deserialize_with = "int_to_bool")]
+    daily_will_it_snow: bool,
     daily_chance_of_snow: f32,
     condition: Condition,
     uv: f32,
-    air_quality: AirQuality,
+    avgwetbulb_c: f32,
+    avgwetbulb_f: f32,
+    maxwetbulb_c: f32,
+    maxwetbulb_f: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -169,7 +175,8 @@ struct Hour {
     time: String,
     temp_c: f32,
     temp_f: f32,
-    is_day: u8,
+    #[serde(deserialize_with = "int_to_bool")]
+    is_day: bool,
     condition: Condition,
     wind_mph: f32,
     wind_kph: f32,
@@ -199,11 +206,8 @@ struct Hour {
     gust_mph: f32,
     gust_kph: f32,
     uv: f32,
-    air_quality: AirQuality,
-    short_rad: f32,
-    diff_rad: f32,
-    dni: f32,
-    gti: f32,
+    wetbulb_c: f32,
+    wetbulb_f: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -232,15 +236,12 @@ pub(crate) async fn get_weather(
     client: &Client,
     config: &crate::Config,
 ) -> Result<ShortWeather, WeatherError> {
-    let result: String = client
-        .get(format!(
-            "{WEATHER_API_URI}?key={}&{QUERY}",
-            config.weather_api
-        ))
-        .send()
-        .await?
-        .text()
-        .await?;
+    let url = format!(
+        "{WEATHER_API_URI}?key={}&q={}&{QUERY}",
+        config.weather_api, config.weather_location
+    );
+
+    let result: String = client.get(url).send().await?.text().await?;
 
     let weather: Weather = from_str(&result)?;
 

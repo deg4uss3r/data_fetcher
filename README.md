@@ -23,4 +23,5 @@ A simple `data_fetcher` tool to help with home automation
 ```toml
 trash_location = ""
 weather_api = ""
+weather_location = ""
 ```

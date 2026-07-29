@@ -34,7 +34,7 @@ pub(crate) async fn italian_word(client: &Client) -> Result<ItalianWord, Italian
     let resp = client.get(ITALIAN_FEED).send().await?.bytes().await?;
     let rss = Channel::read_from(&resp[..])?;
 
-    let word_item = rss.items.get(0).ok_or(ItalianError::WordError)?;
+    let word_item = rss.items.first().ok_or(ItalianError::WordError)?;
     let italian_word = word_item.title().unwrap_or("WORD NOT FOUND");
     it.word = italian_word.to_string();
 
